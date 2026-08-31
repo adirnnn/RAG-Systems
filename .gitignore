@@ -1,0 +1,10 @@
+# Secretos: nunca subir la API Key
+.env
+.env.local
+
+# Dependencias
+node_modules/
+
+# Logs
+npm-debug.log*
+*.log
