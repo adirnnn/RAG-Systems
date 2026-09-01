@@ -50,7 +50,7 @@ Edita `.env` y coloca tu API Key:
 ```
 GROQ_API_KEY=gsk_tu_api_key_aqui
 GROQ_BASE_URL=https://api.groq.com/openai/v1
-GROQ_MODEL=llama-3.3-70b-versatile
+GROQ_MODEL=openai/gpt-oss-120b
 ```
 
 > El archivo `.env` está en `.gitignore`. **Nunca** subas tu API Key al repositorio.
