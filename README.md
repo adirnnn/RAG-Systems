@@ -91,6 +91,7 @@ Pregunta fuera del documento (el agente admite que no sabe):
 
 ## Video
 
-Se adjunta un video corto sin voz mostrando el funcionamiento: preguntas
-respondidas desde el archivo, una pregunta fuera del archivo y la salida con
-`Bye` o `Ctrl+C`.
+Video corto sin voz mostrando el funcionamiento (preguntas respondidas desde el
+archivo, una pregunta fuera del archivo y la salida con `Bye` o `Ctrl+C`):
+
+<https://youtu.be/rmmoUr4DaP4>
