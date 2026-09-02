@@ -4,7 +4,15 @@ import OpenAI from "openai";
 
 import { loadFaqContext } from "./faq.js";
 
-// --- 1. Configuración desde el entorno -------------------------------------
+// intento cargar el archivo .env si existe, así no dependo de ninguna librería
+// si no está, sigo con lo que haya en el entorno y no pasa nada
+try {
+  process.loadEnvFile(".env");
+} catch {
+  // no había archivo .env, las variables pueden venir del entorno igual
+}
+
+// leo la configuración del entorno y dejo valores por defecto por si acaso
 const {
   GROQ_API_KEY,
   GROQ_BASE_URL = "https://api.groq.com/openai/v1",
@@ -12,6 +20,7 @@ const {
   FAQ_FILE,
 } = process.env;
 
+// sin api key no puedo hacer nada, así que aviso y salgo
 if (!GROQ_API_KEY) {
   console.error(
     "\nFalta la variable de entorno GROQ_API_KEY.\n" +
@@ -20,7 +29,7 @@ if (!GROQ_API_KEY) {
   process.exit(1);
 }
 
-// --- 2. "Retrieval": cargar el archivo de FAQs del file system ------------
+// paso de retrieval: traigo el archivo de faqs desde el disco
 let faq;
 try {
   faq = loadFaqContext(FAQ_FILE);
@@ -29,28 +38,30 @@ try {
   process.exit(1);
 }
 
-// --- 3. "Augmented": inyectar el contenido en el prompt de sistema -------
+// paso de augmented: meto todo el texto del archivo dentro del prompt de sistema
+// y le pongo reglas para que solo responda con eso y en texto plano
 const SYSTEM_PROMPT = `Eres el asistente virtual de preguntas frecuentes de Parachute S.A. para su evento de paracaidismo en Guatemala.
 
 REGLAS ESTRICTAS:
-1. Responde ÚNICAMENTE con información contenida en el documento delimitado por <FAQS> y </FAQS>.
-2. No uses conocimiento externo ni supongas datos que no aparezcan en el documento.
-3. Si la respuesta no está en el documento, responde exactamente:
+1. Responde SOLO con información que esté dentro del documento delimitado por <FAQS> y </FAQS>.
+2. No uses conocimiento externo ni inventes datos que no aparezcan en el documento.
+3. Si la respuesta no está en el documento, responde exactamente esto:
    "Lo siento, no tengo esa información en el documento de preguntas frecuentes. Puedes contactar a Parachute S.A. al +502 2300-0000 o al correo info@parachutesa.gt."
 4. Responde en español, de forma breve y clara.
-5. Puedes usar el historial de la conversación para entender preguntas de seguimiento, pero la fuente de verdad siempre es el documento.
+5. Escribe en texto plano, sin formato markdown: nada de asteriscos para negrita, ni viñetas, ni encabezados. La respuesta se muestra en una terminal.
+6. Puedes usar el historial de la conversación para entender preguntas de seguimiento, pero la fuente de verdad siempre es el documento.
 
 <FAQS>
 ${faq.content}
 </FAQS>`;
 
-// --- 4. Cliente compatible con la API de OpenAI (Groq) -------------------
+// cliente de openai pero apuntado al endpoint de groq, que es compatible
 const client = new OpenAI({ apiKey: GROQ_API_KEY, baseURL: GROQ_BASE_URL });
 
-// --- 5. Historial de la conversación (memoria de la sesión) -------------
+// acá voy guardando toda la conversación para que recuerde el contexto
 const messages = [{ role: "system", content: SYSTEM_PROMPT }];
 
-// --- 6. Loop de preguntas y respuestas --------------------------------
+// palabras con las que el usuario puede salir del loop
 const EXIT_WORDS = new Set(["bye", "adios", "adiós", "salir"]);
 
 const rl = createInterface({ input, output });
@@ -59,7 +70,7 @@ function despedirse() {
   console.log("\nAgente> ¡Gracias por tu interés en Parachute S.A.! Hasta pronto.\n");
 }
 
-// Ctrl-C: salida limpia
+// si el usuario presiona Ctrl+C cierro todo de forma ordenada
 rl.on("SIGINT", () => {
   despedirse();
   rl.close();
@@ -67,23 +78,25 @@ rl.on("SIGINT", () => {
 });
 
 console.log("========================================================");
-console.log(" Agente de FAQs - Parachute S.A. (evento 2026)");
+console.log(" Agente de FAQs Parachute S.A. (evento 2026)");
 console.log(` Modelo: ${GROQ_MODEL}  |  Fuente: ${faq.path}`);
-console.log('  Escribe "Bye" o presiona Ctrl-C para salir.');
+console.log('  Escribe "Bye" o presiona Ctrl+C para salir.');
 console.log("========================================================\n");
 
 output.write("Tú> ");
 
-// El iterador asíncrono termina solo al cerrar la entrada (EOF / Ctrl-D o
-// stdin canalizado). Ctrl-C se maneja arriba con el evento "SIGINT".
+// este for await se corta solo cuando se cierra la entrada (Ctrl+D o cuando
+// le paso texto por pipe). el Ctrl+C lo manejo arriba con el evento SIGINT
 for await (const linea of rl) {
   const pregunta = linea.trim();
 
+  // si mandó una línea vacía solo vuelvo a pedir input
   if (!pregunta) {
     output.write("Tú> ");
     continue;
   }
 
+  // si escribió una palabra de salida me despido y corto el loop
   if (EXIT_WORDS.has(pregunta.toLowerCase())) {
     despedirse();
     break;
@@ -105,7 +118,7 @@ for await (const linea of rl) {
     messages.push({ role: "assistant", content: respuesta });
     console.log(`\nAgente> ${respuesta}\n`);
   } catch (err) {
-    // Quitar el turno del usuario que falló para no ensuciar el historial.
+    // si la llamada falla saco la pregunta del historial para no dejarlo sucio
     messages.pop();
     console.error(`\nAgente> Ocurrió un error al consultar el modelo: ${err.message}\n`);
   }

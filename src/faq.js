@@ -2,22 +2,19 @@ import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, isAbsolute, join } from "node:path";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = join(__dirname, "..");
+// saco la carpeta de este archivo para poder armar rutas desde la raíz del repo
+const currentDir = dirname(fileURLToPath(import.meta.url));
+const repoRoot = join(currentDir, "..");
 
 export const DEFAULT_FAQ_FILE = "FAQs_Parachute_SA_Guatemala_2026.txt";
 
-/**
- * Carga (paso "Retrieval" de este RAG mínimo) el archivo de preguntas frecuentes
- * desde el file system y devuelve su contenido como texto plano.
- *
- * @param {string} [file] Ruta al archivo. Si es relativa se resuelve contra la
- *   raíz del repositorio. Por defecto: FAQs_Parachute_SA_Guatemala_2026.txt
- * @returns {{ path: string, content: string }}
- */
+// esta función es el paso de retrieval del rag: agarra el txt del disco y me
+// devuelve todo su contenido como texto para metérselo después al modelo
 export function loadFaqContext(file = DEFAULT_FAQ_FILE) {
-  const path = isAbsolute(file) ? file : join(REPO_ROOT, file);
+  // si me pasan una ruta relativa la armo desde la raíz del proyecto
+  const path = isAbsolute(file) ? file : join(repoRoot, file);
 
+  // si el archivo no está, mejor aviso claro y no sigo
   if (!existsSync(path)) {
     throw new Error(
       `No se encontró el archivo de preguntas frecuentes en: ${path}\n` +
@@ -27,6 +24,7 @@ export function loadFaqContext(file = DEFAULT_FAQ_FILE) {
 
   const content = readFileSync(path, "utf8").trim();
 
+  // si viene vacío tampoco tiene sentido continuar
   if (!content) {
     throw new Error(`El archivo de preguntas frecuentes está vacío: ${path}`);
   }

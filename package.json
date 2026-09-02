@@ -1,15 +1,14 @@
 {
-  "name": "parachute-faq-rag-agent",
+  "name": "parachute_faq_rag_agent",
   "version": "1.0.0",
-  "description": "Demo de terminal: agente de FAQs de Parachute S.A. con arquitectura RAG simple (archivo de texto inyectado al contexto).",
+  "description": "Demo de terminal: agente de FAQs de Parachute S.A. con arquitectura RAG simple, un archivo de texto se inyecta al contexto del modelo.",
   "type": "module",
   "main": "src/index.js",
   "scripts": {
-    "start": "node --env-file=.env src/index.js",
-    "start:noenv": "node src/index.js"
+    "start": "node src/index.js"
   },
   "engines": {
-    "node": ">=20.6.0"
+    "node": ">=20.12.0"
   },
   "dependencies": {
     "openai": "^4.77.0"
