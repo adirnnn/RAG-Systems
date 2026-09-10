@@ -1,0 +1,24 @@
+# infraestructura de hdt4: postgres con la extension pgvector
+# se levanta con:  docker compose up -d
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: parachute_pgvector
+    environment:
+      POSTGRES_USER: parachute
+      POSTGRES_PASSWORD: parachute
+      POSTGRES_DB: parachute
+    ports:
+      # 5433 ya lo usa otro contenedor en esta maquina, por eso 5434 afuera
+      - "5434:5432"
+    volumes:
+      - parachute_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U parachute -d parachute"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  parachute_pgdata:
