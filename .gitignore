@@ -1,10 +1,15 @@
-# Secretos: nunca subir la API Key
+# secretos: nunca subir la API Key ni credenciales
 .env
 .env.local
 
-# Dependencias
+# dependencias de node (HDT3)
 node_modules/
 
-# Logs
+# entorno y cache de python (HDT4)
+.venv/
+__pycache__/
+*.pyc
+
+# logs
 npm-debug.log*
 *.log
