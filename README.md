@@ -1,53 +1,43 @@
 # Agente de FAQs Parachute S.A. (CC3116)
 
-Hoja de trabajo #4: Herramientas (pgvector + function calling).
+Hoja de trabajo #5: Orquestación (sistemas multiagente).
 
-Version mas robusta del agente de FAQs de Parachute S.A. La base de conocimientos
-es un dump grande (`Corpus_FAQs_Parachute_SA_2026.txt`, 120 fichas) que vive en
-PostgreSQL con la extension pgvector. El agente ya no recibe todo el texto en el
-prompt: consulta la base por medio de una herramienta (function calling)
-registrada en el SDK. Si la pregunta no corresponde a ninguna ficha, el agente
-admite que no puede responderla.
+Nuevo requisito de Parachute S.A.: el agente ahora puede calendarizar una cita
+de salto revisando el clima antes (Open-Meteo, con un criterio de viento,
+ráfagas, precipitación y nubes para decidir si es seguro saltar). El mismo
+problema se resuelve con tres arquitecturas de orquestación multiagente
+distintas, usando el OpenAI Agents SDK apuntado a Groq: centralizada
+(`as_tool`, un manager), jerárquica (`as_tool` en dos niveles) y
+decentralizada (`handoff` entre agentes independientes).
 
-Todo el codigo esta en [`hdt4/`](hdt4/). Doc detallada en
-[`hdt4/README.md`](hdt4/README.md).
+Todo el código está en [`hdt5/`](hdt5/). Doc detallada, diagramas de cada
+arquitectura y las respuestas a las preguntas de la hoja en
+[`hdt5/README.md`](hdt5/README.md).
 
-## Arquitectura
+## Los tres programas
 
-```
-Corpus_FAQs_Parachute_SA_2026.txt
-        |  hdt4/cargar.py  (una vez)
-        v
-parseo de 120 fichas  ->  sentence-transformers (MiniLM multilingue, 384 dimensiones)
-        v
-tabla faqs(..., embedding vector(384))  en PostgreSQL + pgvector, indice HNSW coseno
-        |
-        |  hdt4/agente.py  (loop de terminal)
-        v
-usuario pregunta  ->  LLM (Groq) llama la tool buscar_en_faqs(consulta, k)
-        v
-la tool embebe la consulta y hace  ORDER BY embedding <=> consulta  LIMIT k
-        v
-si el mejor score < UMBRAL  ->  el agente admite que no sabe
-```
+* `hdt5/centralizado.py`: un manager delega en especialistas expuestos como
+  herramienta.
+* `hdt5/jerarquico.py`: un director delega en dos submanagers, cada uno con
+  sus propios workers.
+* `hdt5/descentralizado.py`: agentes independientes que se transfieren la
+  conversación completa entre sí.
 
-## Dos programas
+Diagramas de cada arquitectura en [`hdt5/diagrams/`](hdt5/diagrams/).
+Respuestas a las preguntas de la hoja en
+[`hdt5/respuestas.pdf`](hdt5/respuestas.pdf).
 
-* `hdt4/cargar.py`: llena la tabla de PostgreSQL con los embeddings del corpus.
-* `hdt4/agente.py`: agente de terminal que responde usando la herramienta.
+## Cómo inicializar la infraestructura
 
-## Como inicializar la infraestructura
-
-Requisitos: Docker con `docker compose`, Python 3.11 o superior, una API Key
-gratuita de Groq (<https://console.groq.com/keys>). La primera corrida baja
-`torch` y el modelo de embeddings (~200 MB).
+HDT5 reutiliza la misma base PostgreSQL con pgvector que llenó HDT4 (no trae
+la suya propia). Requisitos: Docker con `docker compose`, Python 3.11 o
+superior, una API Key gratuita de Groq (<https://console.groq.com/keys>).
 
 ```bash
+# 1. levantar la base de HDT4 (contenedor parachute_pgvector, puerto 5434)
 cd hdt4
-
-# 1. levantar PostgreSQL con pgvector (contenedor parachute_pgvector, puerto 5434)
 docker compose up -d
-docker compose ps
+cd ../hdt5
 
 # 2. entorno de python
 python -m venv .venv
@@ -57,22 +47,21 @@ pip install -r requirements.txt
 
 # 3. configuracion
 copy .env.example .env
-# editar .env y pegar GROQ_API_KEY (se puede copiar del .env de la raiz)
+# editar .env y pegar GROQ_API_KEY (se puede copiar del .env de hdt4)
 
-# 4. cargar los embeddings a la base
-python cargar.py
-# -> listo: 120 FAQs cargadas en la tabla faqs
-
-# 5. correr el agente
-python agente.py
+# 4. correr cualquiera de las tres arquitecturas
+python centralizado.py
+python jerarquico.py
+python descentralizado.py
 ```
 
-Para salir del agente: `Bye` o `Ctrl+C`. Para apagar la base: `docker compose
-stop` (o `docker compose down -v` para borrar tambien el volumen).
+Para salir de cualquiera: `Bye` o `Ctrl+C`. Detalle completo (criterio de
+decisión del clima, notas técnicas de compatibilidad con Groq, ejemplos) en
+[`hdt5/README.md`](hdt5/README.md).
 
-## Video
+## Entregas anteriores
 
-Video corto sin voz mostrando `cargar.py` llenando la tabla y `agente.py`
-respondiendo preguntas del corpus, incluida una fuera de dominio:
-
-<https://youtu.be/URD2tdL6Pms>
+* Hoja de trabajo #3 (RAG simple, Node.js): código en la raíz (`src/`), ver el
+  historial de git para su README.
+* Hoja de trabajo #4 (pgvector + function calling, Python): código y doc en
+  [`hdt4/`](hdt4/).
