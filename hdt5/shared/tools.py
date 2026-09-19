@@ -6,6 +6,7 @@ cambia por arquitectura es a que agente se le da cada tool.
 """
 
 from agents import function_tool, handoff
+from agents.extensions.handoff_filters import remove_all_tools
 
 from .agenda import agendar_cita_raw
 from .clima import consultar_clima_raw
@@ -61,15 +62,22 @@ def agendar_cita(fecha: str, nombre: str | None = None) -> str:
 
 
 def handoff_sin_bloqueo(agente, descripcion=None):
-    """arma un handoff normal (sin datos extra) pero le apaga el json schema
-    estricto.
+    """arma un handoff normal (sin datos extra), pero con dos ajustes que hicieron
+    falta para que funcione bien contra groq (verificados en vivo antes de
+    escribir descentralizado.py):
 
-    con strict_json_schema=True (el default del sdk), el handoff sin input_type
-    genera un schema de tool con properties vacio y groq rechaza esa llamada
-    con un 400 ("'required' present but 'properties' is missing"), algo que no
-    pasa contra la api real de openai. verificado en vivo contra el endpoint de
-    groq antes de escribir los 3 programas.
+    1. apaga el json schema estricto. con strict_json_schema=True (el default
+       del sdk), el handoff sin input_type genera un schema de tool con
+       properties vacio y groq lo rechaza con un 400 ("'required' present but
+       'properties' is missing"), algo que la api real de openai si tolera.
+
+    2. input_filter=remove_all_tools. sin esto, el agente que recibe la
+       conversacion ve en su historial el razonamiento y la llamada de handoff
+       del agente anterior, y los modelos chicos (probado con gpt-oss-20b y
+       tambien con 120b) se confunden: contestan cualquier cosa sin llamar su
+       propia herramienta, como si el handoff ya fuera la respuesta. filtrando
+       ese ruido, el agente nuevo ve la conversacion limpia y si usa su tool.
     """
-    h = handoff(agente, tool_description_override=descripcion)
+    h = handoff(agente, tool_description_override=descripcion, input_filter=remove_all_tools)
     h.strict_json_schema = False
     return h

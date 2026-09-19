@@ -113,11 +113,21 @@ Criterio de decision (viento y rafagas en km/h, nubes en % de cobertura):
 El veredicto final es el peor nivel entre los cuatro factores. Solo se agenda
 la cita si el veredicto no es `NO_SEGURO`.
 
-## Nota tecnica: bug de Groq con handoffs sin datos
+## Notas tecnicas de los handoffs contra Groq
 
-El SDK genera, por defecto, un `handoff()` sin argumentos con un JSON schema
-`{"properties": {}, "required": []}`. Groq (a diferencia de la API real de
-OpenAI) rechaza esa llamada con `400 'required' present but 'properties' is
-missing`. Se verifico en vivo antes de escribir `descentralizado.py`. La
-solucion, en `shared/tools.py::handoff_sin_bloqueo()`, es apagar
-`strict_json_schema` en el objeto `Handoff` que arma `handoff()`.
+Se encontraron y arreglaron dos problemas reales al probar `descentralizado.py`
+en vivo (todo esto vive en `shared/tools.py::handoff_sin_bloqueo()`):
+
+1. **Schema invalido.** El SDK genera, por defecto, un `handoff()` sin
+   argumentos con un JSON schema `{"properties": {}, "required": []}`. Groq (a
+   diferencia de la API real de OpenAI) rechaza esa llamada con `400 'required'
+   present but 'properties' is missing`. Se apaga `strict_json_schema` en el
+   objeto `Handoff` para evitarlo.
+2. **El agente que recibe la conversacion se confunde.** Sin filtrar el
+   historial, el agente que toma el control ve el razonamiento y la llamada de
+   handoff del agente anterior, y los modelos chicos (se probo con
+   `openai/gpt-oss-20b` y tambien con `openai/gpt-oss-120b`) a veces contestan
+   cualquier cosa sin usar su propia herramienta, como si el handoff ya fuera
+   la respuesta. Se usa `input_filter=remove_all_tools` (de
+   `agents.extensions.handoff_filters`) para que el agente nuevo vea la
+   conversacion limpia, sin ese ruido, y si llame su tool.
