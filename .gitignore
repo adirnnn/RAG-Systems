@@ -5,10 +5,13 @@
 # dependencias de node (HDT3)
 node_modules/
 
-# entorno y cache de python (HDT4)
+# entorno y cache de python (HDT4, HDT5)
 .venv/
 __pycache__/
 *.pyc
+
+# datos generados en tiempo de ejecucion (HDT5)
+hdt5/data/citas.json
 
 # logs
 npm-debug.log*
