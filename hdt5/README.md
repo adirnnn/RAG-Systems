@@ -17,8 +17,7 @@ SDK](https://openai.github.io/openai-agents-python/) apuntado a Groq:
   que se transfieren la conversacion completa entre si (`handoff()`).
 
 Los diagramas de cada arquitectura estan en [`diagrams/`](diagrams/) y las
-respuestas a las preguntas de la hoja en [`respuestas.pdf`](respuestas.pdf)
-(fuente en [`respuestas.md`](respuestas.md)).
+respuestas a las preguntas de la hoja en [`respuestas.pdf`](respuestas.pdf).
 
 ## Como se abstrajo la logica de integracion
 
@@ -131,14 +130,3 @@ en vivo (todo esto vive en `shared/tools.py::handoff_sin_bloqueo()`):
    la respuesta. Se usa `input_filter=remove_all_tools` (de
    `agents.extensions.handoff_filters`) para que el agente nuevo vea la
    conversacion limpia, sin ese ruido, y si llame su tool.
-
-## Sobre respuestas.pdf
-
-Las respuestas de la hoja se escriben en [`respuestas.md`](respuestas.md) y se
-convierten a PDF con [`generar_pdf.py`](generar_pdf.py) (usa `fpdf2`, sin
-dependencias del sistema). Si se edita el markdown, se vuelve a generar con:
-
-```bash
-pip install fpdf2
-python generar_pdf.py
-```
